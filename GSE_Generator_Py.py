@@ -1471,6 +1471,13 @@ class GSEGeneratorGUI:
             content = re.sub(appid_pattern, new_appid_line,
                              content, flags=re.MULTILINE)
 
+            # Modify ForceInjectGameOverlayRenderer
+            if self.overlay_var.get():
+                appid_pattern = r'^ForceInjectGameOverlayRenderer=.*$'
+                new_appid_line = f"ForceInjectGameOverlayRenderer=1"
+                content = re.sub(appid_pattern, new_appid_line,
+                                 content, flags=re.MULTILINE)
+
             # Write back to file
             with open(ini_path, 'w', encoding='utf-8') as f:
                 f.write(content)

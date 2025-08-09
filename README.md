@@ -43,6 +43,14 @@ A stable Goldberg Steam Emulator configuration generation tool
    - Default `steam_api.dll`-style configs and DLLs.
 3. Outputs are bundled as `Patch.zip`.
 
+**Note**: The generated `ColdClientLoader.ini`will set the game executable path as:
+
+```
+{Game Name}/{Relative Path to Game Executable}/{Game Executable}.exe
+```
+
+
+
 ### Generating Achievements
 
 *(Achievement data is scraped from SteamDB, but CAPTCHAs may cause failures. Offline parsing is recommended.)*
