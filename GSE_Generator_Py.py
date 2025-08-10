@@ -987,17 +987,22 @@ class GSEGeneratorGUI:
 
     def fetch_game_info(self):
         """Fetch game information"""
-        appid = self.appid_var.get().strip()
-        if not self.info_html_path_var.get().strip() and not self.appid_var.get().strip():
-            messagebox.showerror("Error", "Please enter AppID first")
-            return
-
-        if not self.info_html_path_var.get().strip():
-            try:
-                appid = int(appid)
-            except ValueError:
-                messagebox.showerror("Error", "AppID must be numeric")
+        if os.path.isfile("dlc.html"):
+            self.info_html_path_var.set("dlc.html")
+            appid = 0
+        else:
+            self.info_html_path_var.set("")
+            appid = self.appid_var.get().strip()
+            if not self.info_html_path_var.get().strip() and not self.appid_var.get().strip():
+                messagebox.showerror("Error", "Please enter AppID first")
                 return
+
+            if not self.info_html_path_var.get().strip():
+                try:
+                    appid = int(appid)
+                except ValueError:
+                    messagebox.showerror("Error", "AppID must be numeric")
+                    return
 
         self.fetch_button.config(state='disabled')
         self.fetch_button.config(text="Fetching...")
@@ -1008,7 +1013,6 @@ class GSEGeneratorGUI:
     def _fetch_game_info_worker(self, appid):
         """Game info fetching worker thread"""
         html_path = self.info_html_path_var.get()
-
         if not html_path or not os.path.exists(html_path):
             html_mode = False
         else:
@@ -1250,19 +1254,22 @@ class GSEGeneratorGUI:
 
         html_path = self.achievement_html_path_var.get()
 
-        if not html_path or not os.path.exists(html_path):
-            self.achievement_processing_failed = True
-            messagebox.showwarning(
-                "Warning", "Missing SteamDB achievement HTML page, cannot display achievement configuration, please read README file for details")
-
-        if html_path:
-            if not os.path.splitext(html_path)[1].lower() == '.html':
+        if os.path.isfile("achdb.html"):
+            self.achievement_html_path_var.set("achdb.html")
+        else:
+            if not html_path or not os.path.exists(html_path):
                 self.achievement_processing_failed = True
-                messagebox.showerror("Warning",
-                                     "Not HTML file type, achievement fetch failed"
-                                     )
-            else:
-                self.achievement_processing_failed = False
+                messagebox.showwarning(
+                    "Warning", "Missing SteamDB achievement HTML page, cannot display achievement configuration, please read README file for details")
+
+            if html_path:
+                if not os.path.splitext(html_path)[1].lower() == '.html':
+                    self.achievement_processing_failed = True
+                    messagebox.showerror("Warning",
+                                         "Not HTML file type, achievement fetch failed"
+                                         )
+                else:
+                    self.achievement_processing_failed = False
 
         # If custom ICO icon is selected, show selection dialog
         if self.use_custom_ico_var.get():
@@ -1787,6 +1794,7 @@ class GSEGeneratorGUI:
                 else:
                     enable_local_html = True
         else:
+            self.community_achievement_html = "achs.html"
             enable_local_html = True
 
         if enable_local_html:
@@ -1813,10 +1821,13 @@ class GSEGeneratorGUI:
                 hidden = 0
                 description_clean = description_raw
 
-                if "Hidden achievement" in description_raw:
+                desc_copy = achievement_desc_div.__copy__()
+                i_tag = desc_copy.find('i')
+                if i_tag:
                     hidden = 1
-                    description_clean = re.sub(
-                        r'Hidden achievement:\s*', '', description_raw, flags=re.IGNORECASE)
+                    i_tag.decompose()
+                description_clean = desc_copy.get_text(
+                    strip=True) if desc_copy else ""
 
                 icon_img = achievement_div.find(
                     'img', class_='achievement_image')
@@ -1870,8 +1881,10 @@ class GSEGeneratorGUI:
                             display_name = h3_tag.text.strip()
                             description = h5_tag.text.strip()
                     if achievement_name_div and achievement_desc_div:
-                        achievement['displayName'] = display_name
-                        achievement['description'] = description
+                        if display_name:
+                            achievement['displayName'] = display_name
+                        if description:
+                            achievement['description'] = description
                 except Exception as e:
                     print(
                         f"Error getting achievement info from SteamCommunity page: {e}")

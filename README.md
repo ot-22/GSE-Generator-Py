@@ -1,4 +1,4 @@
-# GSE_Generator_Py
+# GSE Generator Py
 
 A stable Goldberg Steam Emulator configuration generation tool
 
@@ -40,7 +40,7 @@ These files can be obtained from GSE [Releases](https://github.com/Detanup01/gbe
 
 ### Information Retrieval Modes:
 
-Since certain essential information must be obtained from SteamDB, accessing SteamDB web pages often encounters verification challenges that can easily cause achievement list and image retrieval failures. Therefore, we use browsers (Chrome or Edge) to manually download offline `.html` pages for parsing and obtaining achievement lists and images. Some information also provides online retrieval mode.
+Since certain essential information must be retrieved from SteamDB, and accessing the SteamDB website often encounters verification challenges—which significantly increases the likelihood of retrieval failures for both achievement lists and their corresponding images — the solution involves manually downloading offline .htmlpages via a browser (Chrome or Edge) for parsing and extracting the required data. Additionally, some information is also available through online retrieval modes for convenience.
 
 - **Application Main Information:**
   - Online Mode: Provide AppID, and the generator will retrieve game name and DLC list from Steam Store API, but the DLC list may not be accurate
