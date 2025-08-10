@@ -2,62 +2,109 @@
 
 A stable Goldberg Steam Emulator configuration generation tool
 
-
-
 ## Interface
 
-![tmp8E9B.png](https://youke1.picui.cn/s1/2025/08/09/68970f02508b9.png)
+![tmpB93C.png](https://youke1.picui.cn/s1/2025/08/10/6898a66a2a972.png)
 
 ## Features
 
-- Fetch game information and DLC lists by AppID.
-- Parse SteamDB pages to generate GSE-compatible achievement images and `achievements.json`.
-- Generate `steam_settings`configuration files based on parameters.
-- Provide a GUI for parameter input, displaying achievement lists and game details.
-- Embed game executable icons or custom `.ico`files into `steamclient_loader.exe`.
+- Retrieve game information and DLC list based on AppID
+- Parse SteamDB pages to generate GSE-compatible achievement images and `achievements.json` for in-game overlay achievement functionality
+- Generate `steam_settings` configuration files based on parameters
+- Provide GUI for parameter input, achievement list display, and game information viewing
+- Embed game executable icons or custom .ico icons into `steamclient_loader.exe`
 
 
 
 ## Required Files
 
-- Place the following files in the `../source/`directory:
-
-  - `steamclient.dll`, `steamclient64.dll`, `steamclient_loader_x64.exe`
-  - `GameOverlayRenderer64.dll`, `GameOverlayRenderer.dll`, `ColdClientLoader.ini`
-
-- The `../source/GSE_DLL/`directory must contain:
-
-  - `experimental/`and `regular/`subdirectories, each holding corresponding `steam_api.dll`and `steam_api64.dll`files.
-
-    *(Note: These files can be Download from the GSE [Release](https://github.com/Detanup01/gbe_fork/releases).)*
-
-    
-
-## Usage
-
-### Generating Configuration Files
-
-1. Enter the AppID in the input field to fetch game details.
-2. After providing necessary parameters in the GUI, the tool will generate configuration files under `Output/{Game Name}/`, including:
-   - ColdClientLoader-style configs and DLLs.
-   - Default `steam_api.dll`-style configs and DLLs.
-3. Outputs are bundled as `Patch.zip`.
-
-**Note**: The generated `ColdClientLoader.ini`will set the game executable path as:
-
 ```
-{Game Name}/{Relative Path to Game Executable}/{Game Executable}.exe
+source
+├── GSE_DLL
+│   ├── experimental
+│   │   ├── steam_api.dll
+│   │   └── steam_api64.dll
+│   └── regular
+│       ├── steam_api.dll
+│       └── steam_api64.dll
+├── GameOverlayRenderer.dll
+├── GameOverlayRenderer64.dll
+├── steamclient.dll
+├── steamclient64.dll
+└── steamclient_loader_x64.exe
 ```
 
+These files can be obtained from GSE [Releases](https://github.com/Detanup01/gbe_fork/releases)
 
+## How to Use
 
-### Generating Achievements
+### Information Retrieval Modes:
 
-*(Achievement data is scraped from SteamDB, but CAPTCHAs may cause failures. Offline parsing is recommended.)*
+Since certain essential information must be obtained from SteamDB, accessing SteamDB web pages often encounters verification challenges that can easily cause achievement list and image retrieval failures. Therefore, we use browsers (Chrome or Edge) to manually download offline `.html` pages for parsing and obtaining achievement lists and images. Some information also provides online retrieval mode.
 
-1. Open the game’s SteamDB achievements page (`https://steamdb.info/app/{AppID}/stats/`) in Chrome or Edge.
-2. After all achievement images load, save the page locally via `Ctrl+S`to the generator’s working directory. This creates:
-   - `{html_name}.html`
-   - An `html_name/`folder containing images.
-3. Rename the `html_name/`folder to `imgs/`.
-4. In the generator, specify the path to `{html_name}.html`.
+- **Application Main Information:**
+  - Online Mode: Provide AppID, and the generator will retrieve game name and DLC list from Steam Store API, but the DLC list may not be accurate
+  - Local Mode: Generator automatically retrieves AppID, game name, and DLC list from local HTML files. This method is more accurate and stable. Download the local webpage from specific SteamDB pages. You can rename the downloaded Info Page to `dlc.html` and place it in the application root directory to enable offline retrieval mode, or specify your Info Page HTML file in the Info HTML File text box
+
+- **Achievement List:**
+  - Achievement lists must be obtained from local HTML pages downloaded from specific SteamDB pages. You can rename the SteamDB achievement HTML file to `achdb.html` and place it in the application root directory to enable offline retrieval mode, or specify your Achievement Page HTML file in the Achievement HTML File text box
+  - Achievement names and descriptions obtained from SteamDB are in English by default. Based on your selected language, the generator will convert English text to localized text online. If retrieval fails due to network or other reasons, you'll be asked whether to use the local HTML file. This local webpage is obtained from Steam pages. You can also rename the local HTML file to `achs.html` and place it in the application root directory to automatically apply the local HTML file
+
+- **Achievement Images:**
+  - Achievement images will be placed in the cache folder saved from SteamDB's achievement page. Rename the cache folder to `imgs` and place it in the application root directory
+
+![tmp5989.png](https://youke1.picui.cn/s1/2025/08/10/6898ac325ad21.png)
+
+### How to Download Local Web Pages
+
+1. Use a browser to open specific information pages. Links to the local pages mentioned above will be provided in the generator interface
+
+![tmpC3E2.png](https://youke1.picui.cn/s1/2025/08/10/6898a52359fd4.png)
+
+2. After opening the webpage, press `Ctrl+S` in your browser (Chrome or Edge) to save the page. This will generate the `{html_name}.html` page file and the image cache `html_name` folder
+
+The image cache folder is only needed when retrieving achievement images. Please rename the cache folder to `imgs` and place it in the application root directory.
+
+### Generate Patch
+
+When "Generate Patch" is checked, you'll be prompted for the game's original `steamapi.dll` file path. The tool will then generate the `steam_settings` files and GSE's `steamapi.dll` files relative to the game's root directory and package them into `Patch.zip`.
+
+### Generate Configuration Files
+
+After obtaining game information and entering necessary parameters in the interface, configuration files can be generated. Output is placed in the `Output/{Game Name}` folder.
+
+The Output directory contains `steam_settings` configuration files and `ColdClientLoader` files. The generated patch output includes:
+
+```
+Output
+└── {Game_Name}
+    ├── steam_settings
+    │   ├── achievement_images
+    │   ├── fonts
+    │   │   ├── Roboto-Medium-LICENSE.txt
+    │   │   └── Roboto-Medium.ttf
+    │   ├── sounds
+    │   │   └── overlay_achievement_notification.wav
+    │   ├── achievements.json
+    │   ├── configs.app.ini
+    │   ├── configs.overlay.ini
+    │   ├── configs.user.ini
+    │   ├── header.jpg
+    │   ├── library_600x900.jpg
+    │   ├── logo.png
+    │   └── steam_appid.txt
+    ├── ColdClientLoader.ini
+    ├── GameOverlayRenderer.dll
+    ├── GameOverlayRenderer64.dll
+    ├── Patch.zip
+    ├── steamclient.dll
+    ├── steamclient64.dll
+    └── {Game_Name}.exe
+```
+
+Note: The game executable path in ColdClientLoader.ini is 
+
+```
+{Game Name}/{Game Executable Relative Path}/{Game Executable}.exe
+```
+
