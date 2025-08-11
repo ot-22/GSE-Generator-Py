@@ -1256,6 +1256,7 @@ class GSEGeneratorGUI:
 
         if os.path.isfile("achdb.html"):
             self.achievement_html_path_var.set("achdb.html")
+            self.achievement_processing_failed = False
         else:
             if not html_path or not os.path.exists(html_path):
                 self.achievement_processing_failed = True
