@@ -14,12 +14,27 @@ import webbrowser
 
 
 def replace_exe_icon_with_ico(ico_file: str, target_exe: str, output_exe: str) -> bool:
+    """
+    Embed ICO icon file into target exe file
+
+    Args:
+        ico_file: ICO icon file path
+        target_exe: Target exe file path (icon to be replaced)
+        output_exe: Output exe file path
+
+    Returns:
+        bool: Whether the operation was successful
+    """
+
+    # Tool path
     resource_hacker_path = "./tool/ResourceHacker.exe"
 
+    # Check if tool exists
     if not os.path.exists(resource_hacker_path):
         print(f"ResourceHacker tool not found: {resource_hacker_path}")
         return False
 
+    # Check input files
     if not os.path.exists(ico_file):
         print(f"ICO file not found: {ico_file}")
         return False
@@ -29,13 +44,16 @@ def replace_exe_icon_with_ico(ico_file: str, target_exe: str, output_exe: str) -
         return False
 
     if not os.path.splitext(ico_file)[1].lower() == '.ico':
-        messagebox.showerror(
-            "Warning", "Please select an ICO file, icon replacement operation is invalid")
+        messagebox.showerror("Warning",
+                             "Please select ICO format file, icon replacement operation is invalid"
+                             )
         return False
 
     try:
+        # Copy target file to output path
         shutil.copy2(target_exe, output_exe)
 
+        # Use ResourceHacker to replace icon
         print("Replacing icon...")
         replace_cmd = [
             resource_hacker_path,
@@ -62,13 +80,30 @@ def replace_exe_icon_with_ico(ico_file: str, target_exe: str, output_exe: str) -
 
 
 def replace_exe_icon(source_exe: str, target_exe: str, output_exe: str) -> bool:
+    """
+    Replace icon from source exe file to target exe file
+
+    Args:
+        source_exe: Source exe file path (extract icon)
+        target_exe: Target exe file path (icon to be replaced)
+        output_exe: Output exe file path
+
+    Returns:
+        bool: Whether the operation was successful
+    """
+
+    # Tool path
     resource_hacker_path = "./tool/ResourceHacker.exe"
+
+    # Temporary icon directory
     temp_icon_dir = "./temp_icon"
 
+    # Check if tool exists
     if not os.path.exists(resource_hacker_path):
         print(f"ResourceHacker tool not found: {resource_hacker_path}")
         return False
 
+    # Check input files
     if not os.path.exists(source_exe):
         print(f"Source file not found: {source_exe}")
         return False
@@ -77,13 +112,15 @@ def replace_exe_icon(source_exe: str, target_exe: str, output_exe: str) -> bool:
         print(f"Target file not found: {target_exe}")
         return False
 
+    # Create temporary icon directory
     if not os.path.exists(temp_icon_dir):
         os.makedirs(temp_icon_dir)
 
     try:
+        # Use ResourceHacker to extract icon resources
         res_path = os.path.join(temp_icon_dir, "extracted_icon.res")
 
-        print("Extracting icon resource...")
+        print("Extracting icon resources...")
         extract_cmd = [
             resource_hacker_path,
             "-open", os.path.abspath(source_exe),
@@ -94,6 +131,7 @@ def replace_exe_icon(source_exe: str, target_exe: str, output_exe: str) -> bool:
 
         result = subprocess.run(extract_cmd, capture_output=True, text=True)
 
+        # Check if resource extraction was successful
         if not os.path.exists(res_path) or os.path.getsize(res_path) == 0:
             print("Icon resource extraction failed")
             print(f"ResourceHacker output: {result.stdout}")
@@ -102,8 +140,10 @@ def replace_exe_icon(source_exe: str, target_exe: str, output_exe: str) -> bool:
 
         print("Icon resource extraction successful")
 
+        # Copy target file to output path
         shutil.copy2(target_exe, output_exe)
 
+        # Use ResourceHacker to replace icon
         print("Replacing icon...")
         replace_cmd = [
             resource_hacker_path,
@@ -126,13 +166,29 @@ def replace_exe_icon(source_exe: str, target_exe: str, output_exe: str) -> bool:
     except Exception as e:
         print(f"Operation failed: {e}")
         return False
+
     finally:
+        # Clean up temporary icon directory
         if os.path.exists(temp_icon_dir):
             shutil.rmtree(temp_icon_dir, ignore_errors=True)
 
 
 def get_game_dlc_info(appid, web_language, use_html_mode=False, html_file_path=None):
+    """
+    Get DLC information for a game based on appid
+
+    Args:
+        appid (int): Steam game application ID
+        web_language (str): Language code
+        use_html_mode (bool): Whether to use HTML file mode to get DLC information
+        html_file_path (str): HTML file path (required only when use_html_mode is True)
+
+    Returns:
+        dict: Dictionary containing game information and DLC information
+    """
+
     try:
+        # Choose DLC acquisition method based on mode
         if use_html_mode:
             if not html_file_path:
                 print("HTML mode requires html_file_path parameter")
@@ -146,8 +202,10 @@ def get_game_dlc_info(appid, web_language, use_html_mode=False, html_file_path=N
             with open(html_file_path, 'r', encoding='utf-8') as file:
                 html_content = file.read()
 
+            # Create BeautifulSoup object
             soup = BeautifulSoup(html_content, 'html.parser')
 
+            # Find Appid
             for td in soup.find_all('td'):
                 if td.get_text() and 'App ID' in td.get_text():
                     next_td = td.find_next_sibling('td')
@@ -155,21 +213,29 @@ def get_game_dlc_info(appid, web_language, use_html_mode=False, html_file_path=N
                         appid = next_td.get_text().strip()
                         break
 
+            # Find game name
             app_name_element = soup.find('h1', itemprop='name')
             if app_name_element:
                 game_name = app_name_element.text.strip()
 
+            # Find DLC
+            # Find all tr tags with data-appid attribute
             app_rows = soup.find_all(
                 'tr', class_='app', attrs={'data-appid': True})
 
             dlc_info = {}
 
             for row in app_rows:
+                # Extract data-appid
                 app_id = row.get('data-appid')
+
+                # Find second td tag (contains app name)
                 td_tags = row.find_all('td')
                 if len(td_tags) >= 2:
                     app_name_td = td_tags[1]
+                    # Extract plain text, remove HTML tags and extra spaces
                     app_name = app_name_td.get_text(strip=True)
+
                     dlc_info[int(app_id)] = app_name
 
             print(f"Game name: {game_name}")
@@ -177,9 +243,9 @@ def get_game_dlc_info(appid, web_language, use_html_mode=False, html_file_path=N
             print("-" * 50)
 
             if not dlc_info:
-                print("No related DLC found from HTML file")
+                print("No related DLC found in HTML file")
             else:
-                print(f"Found {len(dlc_info)} related DLC from HTML file:")
+                print(f"Found {len(dlc_info)} related DLCs from HTML file:")
                 for dlc_id, dlc_name in dlc_info.items():
                     print(f"DLC ID: {dlc_id} - Name: {dlc_name}")
 
@@ -188,14 +254,22 @@ def get_game_dlc_info(appid, web_language, use_html_mode=False, html_file_path=N
                 'game_id': appid,
                 'dlc_list': dlc_info
             }
+
         else:
+            # Original API mode
+            # Get DLC list
+            # Send request to get basic game information
+
+            # Steam Store API URL
             url = f"https://store.steampowered.com/api/appdetails?appids={appid}&l={web_language}"
 
             response = requests.get(url)
             response.raise_for_status()
 
+            # Parse JSON data
             data = response.json()
 
+            # Check if data was successfully retrieved
             if str(appid) not in data or not data[str(appid)]['success']:
                 print(f"Unable to get information for appid {appid}")
                 return {}
@@ -216,10 +290,12 @@ def get_game_dlc_info(appid, web_language, use_html_mode=False, html_file_path=N
                     'dlc_list': {}
                 }
 
-            print(f"Found {len(dlc_list)} DLC:")
+            print(f"Found {len(dlc_list)} DLCs:")
 
+            # Dictionary to store DLC information
             dlc_info = {}
 
+            # Get detailed information for each DLC
             for dlc_id in dlc_list:
                 dlc_url = f"https://store.steampowered.com/api/appdetails?appids={dlc_id}&l={web_language}"
 
@@ -234,12 +310,12 @@ def get_game_dlc_info(appid, web_language, use_html_mode=False, html_file_path=N
                         dlc_info[dlc_id] = dlc_name
                         print(f"DLC ID: {dlc_id} - Name: {dlc_name}")
                     else:
-                        dlc_info[dlc_id] = f'Unknown DLC_{dlc_id}'
-                        print(f"DLC ID: {dlc_id} - Name: Unknown DLC_{dlc_id}")
+                        dlc_info[dlc_id] = f'Unknown_DLC_{dlc_id}'
+                        print(f"DLC ID: {dlc_id} - Name: Unknown_DLC_{dlc_id}")
 
                 except requests.RequestException as e:
                     print(f"Error getting DLC {dlc_id} information: {e}")
-                    dlc_info[dlc_id] = f'Failed_{dlc_id}'
+                    dlc_info[dlc_id] = f'Failed_to_get_{dlc_id}'
 
             return {
                 'game_name': game_name,
@@ -266,20 +342,23 @@ class AchievementDisplayWindow:
         self.game_name = game_name
         self.window = tk.Toplevel()
         self.window.title(
-            f"Achievement List - {len(achievements)} achievements")
+            f"Achievement List - Total {len(achievements)} achievements")
         self.window.geometry("1000x800")
 
         self.setup_ui()
         self.display_achievements()
 
     def setup_ui(self):
+        # Main frame
         main_frame = ttk.Frame(self.window, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
+        # Title
         title_label = ttk.Label(main_frame, text=f"Achievement List ({len(self.achievements)} achievements)",
                                 font=("Arial", 14, "bold"))
         title_label.pack(pady=(0, 10))
 
+        # Create scroll box
         self.canvas = tk.Canvas(main_frame, bg="white")
         self.scrollbar = ttk.Scrollbar(
             main_frame, orient="vertical", command=self.canvas.yview)
@@ -295,14 +374,17 @@ class AchievementDisplayWindow:
             (0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
 
+        # Bind mouse wheel
         def _on_mousewheel(event):
             self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
         self.canvas.bind("<MouseWheel>", _on_mousewheel)
 
+        # Layout scroll components
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
+        # Bottom button bar
         button_frame = ttk.Frame(self.window)
         button_frame.pack(fill=tk.X, padx=10, pady=5)
 
@@ -310,25 +392,32 @@ class AchievementDisplayWindow:
             side=tk.RIGHT, padx=5)
 
     def display_achievements(self):
+        """Display achievement list"""
         if not self.achievements:
             ttk.Label(self.scrollable_frame,
                       text="No achievement data available").pack(pady=20)
             return
 
+        # Display each achievement
         for i, achievement in enumerate(self.achievements):
             self.create_achievement_widget(
                 self.scrollable_frame, achievement, i)
 
     def create_achievement_widget(self, parent, achievement, index):
+        """Create display widget for a single achievement"""
+        # Main frame
         achievement_frame = ttk.Frame(parent, relief=tk.RIDGE, borderwidth=1)
         achievement_frame.pack(fill=tk.X, padx=5, pady=5)
 
+        # Left side: Image area
         image_frame = ttk.Frame(achievement_frame)
         image_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
+        # Get game name to build path
         game_name = self.game_name
         safe_game_name = re.sub(r'[<>:"/\\|?*]', '_', game_name)
 
+        # Load and display normal icon
         icon_path = achievement.get('icon', '')
         if icon_path:
             full_icon_path = os.path.join(
@@ -340,7 +429,7 @@ class AchievementDisplayWindow:
                     photo = ImageTk.PhotoImage(img)
 
                     icon_label = ttk.Label(image_frame, image=photo)
-                    icon_label.image = photo
+                    icon_label.image = photo  # Keep reference
                     icon_label.pack(side=tk.TOP, pady=2)
 
                     ttk.Label(image_frame, text="Normal Icon",
@@ -355,8 +444,10 @@ class AchievementDisplayWindow:
             ttk.Label(image_frame, text="No Normal Icon", width=12,
                       anchor=tk.CENTER).pack(pady=2)
 
+        # Separator
         ttk.Label(image_frame, text="").pack(pady=5)
 
+        # Load and display gray icon
         icon_gray_path = achievement.get(
             'icongray', achievement.get('icon_gray', ''))
         if icon_gray_path:
@@ -370,25 +461,27 @@ class AchievementDisplayWindow:
                     photo_gray = ImageTk.PhotoImage(img_gray)
 
                     icon_gray_label = ttk.Label(image_frame, image=photo_gray)
-                    icon_gray_label.image = photo_gray
+                    icon_gray_label.image = photo_gray  # Keep reference
                     icon_gray_label.pack(side=tk.TOP, pady=2)
 
-                    ttk.Label(image_frame, text="Grayscale Icon",
+                    ttk.Label(image_frame, text="Gray Icon",
                               font=("Arial", 8)).pack()
                 except Exception as e:
-                    ttk.Label(image_frame, text="Grayscale Icon\nLoad Failed",
+                    ttk.Label(image_frame, text="Gray Icon\nLoad Failed",
                               width=12, anchor=tk.CENTER).pack(pady=2)
             else:
-                ttk.Label(image_frame, text="No Grayscale Icon", width=12,
+                ttk.Label(image_frame, text="No Gray Icon", width=12,
                           anchor=tk.CENTER).pack(pady=2)
         else:
-            ttk.Label(image_frame, text="No Grayscale Icon", width=12,
+            ttk.Label(image_frame, text="No Gray Icon", width=12,
                       anchor=tk.CENTER).pack(pady=2)
 
+        # Right side: Text information
         text_frame = ttk.Frame(achievement_frame)
         text_frame.pack(side=tk.LEFT, fill=tk.BOTH,
                         expand=True, padx=10, pady=10)
 
+        # Achievement number and name
         title_text = f"#{index + 1} - name: {achievement.get('name', 'N/A')}"
         if achievement.get('hidden'):
             title_text += " [Hidden Achievement]"
@@ -397,27 +490,32 @@ class AchievementDisplayWindow:
             text_frame, text=title_text, font=("Arial", 12, "bold"))
         title_label.pack(anchor=tk.W)
 
+        # Display name
         display_name = achievement.get('displayName', 'N/A')
         ttk.Label(text_frame, text=f"Display Name: {display_name}", font=(
             "Arial", 10, "bold")).pack(anchor=tk.W, pady=(5, 0))
 
+        # Description
         description = achievement.get('description', 'N/A')
-        desc_label = ttk.Label(text_frame, text=f"Description: {description}", font=(
-            "Arial", 9), wraplength=500)
+        desc_label = ttk.Label(
+            text_frame, text=f"Description: {description}", font=("Arial", 9), wraplength=500)
         desc_label.pack(anchor=tk.W, pady=(2, 0))
 
+        # Default value
         defaultvalue = achievement.get('defaultvalue', 0)
         ttk.Label(text_frame, text=f"Default Value: {defaultvalue}", font=(
             "Arial", 8), foreground="blue").pack(anchor=tk.W, pady=(5, 0))
 
+        # Image path information
         if icon_path:
             ttk.Label(text_frame, text=f"Normal Icon Path: Output/{safe_game_name}/steam_settings/achievement_images/{icon_path}", font=(
                 "Arial", 8), foreground="gray").pack(anchor=tk.W, pady=(2, 0))
 
         if icon_gray_path:
-            ttk.Label(text_frame, text=f"Grayscale Icon Path: Output/{safe_game_name}/steam_settings/achievement_images/{icon_gray_path}", font=(
+            ttk.Label(text_frame, text=f"Gray Icon Path: Output/{safe_game_name}/steam_settings/achievement_images/{icon_gray_path}", font=(
                 "Arial", 8), foreground="gray").pack(anchor=tk.W, pady=(0, 0))
 
+        # Separator line
         ttk.Separator(parent, orient='horizontal').pack(
             fill=tk.X, padx=5, pady=5)
 
@@ -427,9 +525,10 @@ class GSEGeneratorGUI:
         self.root = root
         self.root.title(
             "GSE Generator - Steam Game Configuration File Generator")
-        self.root.geometry("1300x880")
+        self.root.geometry("1400x870")
         self.root.resizable(True, True)
 
+        # Language mapping
         self.language_mapping = {
             "Arabic": "arabic",
             "Bulgarian": "bulgarian",
@@ -469,6 +568,7 @@ class GSEGeneratorGUI:
         self.custom_ico_path = ""
         self.community_achievement_html = ""
 
+        # Error handling flags
         self.missing_core_files = []
         self.missing_overlay_files = []
         self.has_resource_hacker = True
@@ -477,22 +577,25 @@ class GSEGeneratorGUI:
         self.overlay_files_missing = False
         self.exe_valid = True
 
+        # New patch-related variables
         self.generate_patch_var = tk.BooleanVar(value=False)
         self.game_root_path_var = tk.StringVar()
         self.steamapi_dll_path = ""
-        self.patch_type = ""
+        self.patch_type = ""  # "regular" or "experimental"
 
+        # Check directory integrity at startup
         self.check_directory_integrity()
 
         self.setup_ui()
+
         if os.path.isfile("dlc.html"):
             self.info_html_path_var.set("dlc.html")
         if os.path.isfile("achdb.html"):
             self.achievement_html_path_var.set("achdb.html")
-        if os.path.isfile("achs.html"):
-            self.community_achievement_html = "achs.html"
 
     def check_directory_integrity(self):
+        """Check program directory integrity"""
+        # Check core files
         core_files = [
             "ColdClientLoader.ini",
             "GameOverlayRenderer.dll",
@@ -506,6 +609,7 @@ class GSEGeneratorGUI:
             if not os.path.exists(os.path.join("source", file)):
                 self.missing_core_files.append(file)
 
+        # Check overlay files
         overlay_files = [
             "steam_settings/configs.overlay.ini",
             "steam_settings/sounds/overlay_achievement_notification.wav",
@@ -516,25 +620,30 @@ class GSEGeneratorGUI:
             if not os.path.exists(os.path.join("source", file)):
                 self.missing_overlay_files.append(file)
 
+        # Check ResourceHacker
         if not os.path.exists("tool/ResourceHacker.exe"):
             self.has_resource_hacker = False
 
+        # If core files are missing, show warning
         if self.missing_core_files:
             missing_files_str = ", ".join(self.missing_core_files)
             messagebox.showerror(
-                "Missing Core Files",
-                f"The following core files are missing: {missing_files_str}, unable to generate configuration, please read the README file for details"
+                "Core Files Missing",
+                f"Core files {missing_files_str} etc. are missing, cannot generate configuration, please read README file for details"
             )
 
+        # If overlay files are missing, show warning
         if self.missing_overlay_files:
             missing_files_str = ", ".join(self.missing_overlay_files)
             messagebox.showwarning(
-                "Missing Overlay Files",
-                f"The following overlay core files are missing: {missing_files_str}, the in-game overlay may not work properly, please read the README file for details"
+                "Overlay Files Missing",
+                f"In-game overlay core files {missing_files_str} etc. are missing, in-game overlay interface cannot work properly, please read README file for details"
             )
             self.overlay_files_missing = True
 
     def check_patch_files(self):
+        """Check if patch-related files exist"""
+
         regular_files = [
             "source/GSE_DLL/regular/steam_api.dll",
             "source/GSE_DLL/regular/steam_api64.dll"
@@ -554,33 +663,40 @@ class GSEGeneratorGUI:
         if missing_files:
             missing_files_str = "\n".join(missing_files)
             messagebox.showerror(
-                "Missing Patch Files",
-                f"The following patch files are missing, unable to generate the patch:\n{missing_files_str}"
+                "Patch Files Missing",
+                f"The following patch files are missing, cannot generate patch:\n{missing_files_str}"
             )
             return False
 
         return True
 
     def get_relative_path(self, base_path, target_path):
+        """Get relative path"""
         base_path = os.path.normpath(base_path)
         target_path = os.path.normpath(target_path)
 
+        # Use os.path.relpath to get relative path
         try:
             relative_path = os.path.relpath(target_path, base_path)
+            # If relative path starts with .., it means target_path is not under base_path
             if relative_path.startswith('..'):
                 return target_path
             return relative_path
         except ValueError:
+            # Different drive case
             return target_path
 
     def setup_ui(self):
+        # Main container
         main_container = ttk.Frame(self.root)
         main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
+        # Left configuration area - adjust width
         left_frame = ttk.Frame(main_container)
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         left_frame.config(width=1000)
 
+        # Right information panel - increase width
         self.right_frame = ttk.LabelFrame(
             main_container, text="Game Information", padding="15")
         self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH,
@@ -591,7 +707,7 @@ class GSEGeneratorGUI:
         self.setup_right_panel()
 
     def setup_left_panel(self, parent):
-        # Create main scrollable frame
+        # Create main scroll frame
         canvas = tk.Canvas(parent)
         scrollbar = ttk.Scrollbar(
             parent, orient="vertical", command=canvas.yview)
@@ -605,7 +721,7 @@ class GSEGeneratorGUI:
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        # Main frame
+        # Main frame - adjust padding
         main_frame = ttk.Frame(scrollable_frame, padding="15")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -635,9 +751,9 @@ class GSEGeneratorGUI:
             appid_frame, textvariable=self.appid_var, font=("Arial", 10), width=15)
         appid_entry.pack(side=tk.LEFT, padx=(10, 10))
 
-        # Fetch game info button
+        # Get game info button
         self.fetch_button = ttk.Button(
-            appid_frame, text="Fetch Game Info", command=self.fetch_game_info)
+            appid_frame, text="Get Game Info", command=self.fetch_game_info)
         self.fetch_button.pack(side=tk.LEFT)
 
         # Username
@@ -665,14 +781,14 @@ class GSEGeneratorGUI:
         language_combo.grid(row=3, column=1, sticky=tk.W, padx=(10, 0), pady=5)
         language_combo.bind('<<ComboboxSelected>>', self.on_language_change)
 
-        # Local Save
+        # Local storage
         self.local_storage_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(config_frame, text="Enable Local Save", variable=self.local_storage_var).grid(
+        ttk.Checkbutton(config_frame, text="Enable Local Storage", variable=self.local_storage_var).grid(
             row=4, column=5, columnspan=2, sticky=tk.W, pady=5)
 
         # In-game overlay
         self.overlay_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(config_frame, text="Enable In-game Overlay", variable=self.overlay_var).grid(
+        ttk.Checkbutton(config_frame, text="Enable In-Game Overlay", variable=self.overlay_var).grid(
             row=5, column=5, columnspan=2, sticky=tk.W, pady=5)
 
         # Custom ICO icon option
@@ -749,11 +865,11 @@ class GSEGeneratorGUI:
         ttk.Button(file_select_frame, text="Browse...",
                    command=self.browse_achievement_html_file).pack(side=tk.RIGHT)
 
-        # Image folder instruction
+        # Image folder description
         info_frame = ttk.Frame(file_frame)
         info_frame.pack(fill=tk.X)
 
-        ttk.Label(info_frame, text="📁 Please ensure there is an 'imgs' folder with achievement images in current directory",
+        ttk.Label(info_frame, text="📁 Please ensure there is an 'imgs' folder in the current directory containing achievement images",
                   foreground="red").pack(anchor=tk.W)
 
         # Info page hyperlink
@@ -763,6 +879,7 @@ class GSEGeneratorGUI:
             foreground="blue",
             cursor="hand2"
         )
+        # Horizontal arrangement, right spacing 20px
         info_link.pack(side=tk.LEFT, padx=(0, 20))
         info_link.bind(
             "<Button-1>", lambda e: self.open_url(f"https://steamdb.info/app/{self.appid_var.get()}/dlc/"))
@@ -789,10 +906,11 @@ class GSEGeneratorGUI:
         achievement_link.bind(
             "<Button-1>", lambda e: self.open_url(f"https://steamcommunity.com/stats/{self.appid_var.get()}/achievements/?l={self.game_language.get()}"))
 
-        # Action buttons
+        # Operation buttons
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=10)
 
+        # Initial state of generate config file button depends on core file check result
         initial_state = 'disabled' if self.missing_core_files else 'disabled'
         self.extract_button = ttk.Button(button_frame, text="Generate Config File",
                                          command=self.extract_achievements, state=initial_state)
@@ -802,7 +920,7 @@ class GSEGeneratorGUI:
                    command=self.root.quit).pack(side=tk.RIGHT)
 
         # Status bar
-        initial_status = "Core files missing, cannot generate config" if self.missing_core_files else "Please fetch game info: provide AppID (required), game info HTML file (optional, improves DLC list accuracy)"
+        initial_status = "Core files missing, cannot generate configuration" if self.missing_core_files else "Please get game information first.\nNote: When using the game information HTML file, please clear the AppID text box.\nOnce you manually fill in the AppID information, it will force fetching game information from the network."
         self.status_var = tk.StringVar(value=initial_status)
         status_frame = ttk.Frame(main_frame)
         status_frame.pack(fill=tk.X, pady=(20, 0))
@@ -821,7 +939,7 @@ class GSEGeneratorGUI:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # Bind mouse wheel
+    # Bind mouse wheel
         def _on_mousewheel(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         canvas.bind("<MouseWheel>", _on_mousewheel)
@@ -829,14 +947,17 @@ class GSEGeneratorGUI:
     def on_patch_checkbox_change(self):
         """Handle patch checkbox state change"""
         if self.generate_patch_var.get():
+            # Check patch files
             if not self.check_patch_files():
                 self.generate_patch_var.set(False)
 
     def browse_game_root_folder(self):
         """Browse game root directory"""
-        folder = filedialog.askdirectory(title="Select Game Root Directory")
+        folder = filedialog.askdirectory(
+            title="Select Game Root Directory")
         if folder:
             self.game_root_path_var.set(folder)
+            # Check if extract button can be enabled
             self.check_enable_extract_button()
 
     def setup_right_panel(self):
@@ -845,7 +966,7 @@ class GSEGeneratorGUI:
         self.header_frame = ttk.Frame(self.right_frame)
         self.header_frame.pack(fill=tk.X, pady=(0, 10))
 
-        self.header_label = ttk.Label(self.header_frame, text="No game info\nPlease enter AppID and click\n'Fetch Game Info'",
+        self.header_label = ttk.Label(self.header_frame, text="No Game Information\nPlease enter AppID and click\n'Get Game Info'",
                                       anchor=tk.CENTER, background="lightgray", width=40)
         self.header_label.pack(fill=tk.X, pady=5)
 
@@ -858,18 +979,18 @@ class GSEGeneratorGUI:
         self.logo_label.pack(fill=tk.X, pady=5)
 
         # Game name
-        self.game_name_var = tk.StringVar(value="Not fetched")
+        self.game_name_var = tk.StringVar(value="Not Retrieved")
         ttk.Label(self.right_frame, text="Game Name:", font=(
             "Arial", 10, "bold")).pack(anchor=tk.W, pady=(5, 0))
         self.game_name_label = ttk.Label(self.right_frame, textvariable=self.game_name_var,
                                          font=("Arial", 9), wraplength=400)
         self.game_name_label.pack(anchor=tk.W, padx=(10, 0))
 
-        # DLC info title
-        ttk.Label(self.right_frame, text="DLC Info:", font=(
+        # DLC information title
+        ttk.Label(self.right_frame, text="DLC Information:", font=(
             "Arial", 10, "bold")).pack(anchor=tk.W, pady=(15, 5))
 
-        # DLC scrollable list
+        # DLC scroll list
         dlc_container = ttk.Frame(self.right_frame)
         dlc_container.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
@@ -896,6 +1017,7 @@ class GSEGeneratorGUI:
         )
         if filename:
             self.exe_path_var.set(filename)
+            # Check if extract button can be enabled
             self.check_enable_extract_button()
 
     def select_custom_ico(self):
@@ -910,9 +1032,9 @@ class GSEGeneratorGUI:
         return False
 
     def select_steamapi_dll_folder(self):
-        """Select folder containing steamapi dll file"""
+        """Select folder containing steamapi dll files"""
         folder = filedialog.askdirectory(
-            title="Select Folder Containing Steamapi DLL File")
+            title="Select Folder Containing SteamAPI DLL Files")
         if folder:
             self.steamapi_dll_path = folder
             return True
@@ -927,14 +1049,17 @@ class GSEGeneratorGUI:
         dialog.transient(self.root)
         dialog.grab_set()
 
+        # Center display
         dialog.geometry("+%d+%d" % (self.root.winfo_rootx() +
                         50, self.root.winfo_rooty() + 50))
 
         result = tk.StringVar(value="")
 
-        ttk.Label(dialog, text="Please select the type to apply to steamapi dll:",
-                  font=("Arial", 9)).pack(pady=20)
+        # Prompt text
+        ttk.Label(dialog, text="Please select the type for steamapi dll:",
+                  font=("Arial", 11)).pack(pady=20)
 
+        # Button frame
         button_frame = ttk.Frame(dialog)
         button_frame.pack(pady=10)
 
@@ -955,22 +1080,13 @@ class GSEGeneratorGUI:
 
         return result.get()
 
-    def select_local_achievement(self):
+    def enable_sc_localization(self):
         response = messagebox.askyesno(
             title="Question",
-            message="Use local\nSteam Community achievement html?",
+            message="Use Steam Community localized achievements?\n(If Steam Community achievements are in English, select No)",
             icon="question"
         )
-        if response:
-            success = self.select_community_achievement_html()
-            if success:
-                return True
-            else:
-                messagebox.showwarning(
-                    "Warning", "Cannot generate localized achievements")
-                return False
-        else:
-            return False
+        return response
 
     def select_community_achievement_html(self):
         """Select Steam Community achievement html"""
@@ -987,37 +1103,46 @@ class GSEGeneratorGUI:
 
     def fetch_game_info(self):
         """Fetch game information"""
-        if os.path.isfile("dlc.html"):
-            self.info_html_path_var.set("dlc.html")
-            appid = 0
+        self.pre_appid = False
+        appid = 0
+        if not self.appid_var.get():
+            if not self.info_html_path_var.get():
+                if os.path.isfile("dlc.html"):
+                    self.info_html_path_var.set("dlc.html")
+                else:
+                    if not self.info_html_path_var.get().strip() and not self.appid_var.get().strip():
+                        messagebox.showerror(
+                            "Error", "Please enter AppID first")
+                        return
         else:
-            self.info_html_path_var.set("")
-            appid = self.appid_var.get().strip()
-            if not self.info_html_path_var.get().strip() and not self.appid_var.get().strip():
-                messagebox.showerror("Error", "Please enter AppID first")
+            try:
+                appid = self.appid_var.get().strip()
+                appid = int(appid)
+                self.pre_appid = True
+            except ValueError:
+                messagebox.showerror("Error", "AppID must be a number")
+                self.info_html_path_var.set("")
                 return
 
-            if not self.info_html_path_var.get().strip():
-                try:
-                    appid = int(appid)
-                except ValueError:
-                    messagebox.showerror("Error", "AppID must be numeric")
-                    return
-
+        # Disable button
         self.fetch_button.config(state='disabled')
         self.fetch_button.config(text="Fetching...")
 
+        # Fetch information in new thread
         threading.Thread(target=self._fetch_game_info_worker,
                          args=(appid,), daemon=True).start()
 
     def _fetch_game_info_worker(self, appid):
-        """Game info fetching worker thread"""
+        """Game information fetch worker thread"""
         html_path = self.info_html_path_var.get()
-        if not html_path or not os.path.exists(html_path):
+
+        # Check if HTML file is provided
+        if not html_path or not os.path.exists(html_path) or self.pre_appid:
             html_mode = False
         else:
             html_mode = True
 
+        # Check html file type
         if html_path:
             if not os.path.splitext(html_path)[1].lower() == '.html':
                 html_mode = False
@@ -1026,15 +1151,18 @@ class GSEGeneratorGUI:
                                      )
 
         try:
+            # Get game and DLC information
             web_language = self.game_language.get()
             self.game_info = get_game_dlc_info(
                 appid, web_language, html_mode, html_path)
             id = self.game_info.get('game_id', '')
             self.appid_var.set(id)
 
+            # Download game images to _temp directory
             if self.game_info:
                 self.download_game_images(id)
 
+            # Update UI
             self.root.after(0, self._update_game_info_ui)
 
         except Exception as e:
@@ -1069,7 +1197,8 @@ class GSEGeneratorGUI:
             library_url = f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/library_600x900.jpg"
             library_response = requests.get(library_url)
             if library_response.status_code == 200:
-                library_path = os.path.join(temp_dir, "library_600x900.jpg")
+                library_path = os.path.join(
+                    temp_dir, "library_600x900.jpg")
                 with open(library_path, "wb") as f:
                     f.write(library_response.content)
                 print("Library cover downloaded successfully")
@@ -1078,62 +1207,80 @@ class GSEGeneratorGUI:
             print(f"Failed to download images: {e}")
 
     def _update_game_info_ui(self):
-        """Update game info UI"""
+        """Update game information UI"""
         self.fetch_button.config(state='normal')
-        self.fetch_button.config(text="Fetch Game Info")
+        self.fetch_button.config(text="Get Game Info")
 
         if not self.game_info:
             messagebox.showerror(
-                "Error", "Failed to fetch game info, please check network or use network proxy")
+                "Error", "Failed to get game information, please check network or use network proxy")
             return
 
+        # Mark game information as fetched
         self.game_info_fetched = True
+
+        # Check if extract button can be enabled
         self.check_enable_extract_button()
 
         # Update game name
         game_name = self.game_info.get('game_name', 'Unknown Game')
         self.game_name_var.set(game_name)
 
+        # Update Header image display
         self.update_header_display()
+
+        # Update Logo display
         self.update_logo_display()
+
+        # Update DLC list
         self.update_dlc_display()
 
-        self.status_var.set("Game info fetched successfully!")
-        messagebox.showinfo("Success", "Game info fetched successfully!")
+        # Update status
+        self.status_var.set("Game information fetched successfully!")
+
+        messagebox.showinfo(
+            "Success", "Game information fetched successfully!")
 
     def check_enable_extract_button(self):
-        """Check if generate config file button can be enabled"""
+        """Check if extract button can be enabled"""
+        # If core files are missing, always disable button
         if self.missing_core_files:
             self.extract_button.config(state='disabled')
             return
 
+        # If game root directory is not selected or empty, always disable button
         game_root_path = self.game_root_path_var.get().strip()
         if not game_root_path:
             self.extract_button.config(state='disabled')
             self.status_var.set("Please select game root directory")
             return
 
+        # Must satisfy one of the following conditions to enable button:
+        # 1. Got game info and selected EXE file
+        # 2. Got game info and no ResourceHacker tool (can use default EXE directly)
         if self.game_info_fetched:
             exe_path = self.exe_path_var.get().strip()
 
+            # If ResourceHacker tool exists, need to select EXE file or custom ICO
             if self.has_resource_hacker:
                 if exe_path and os.path.exists(exe_path):
                     self.extract_button.config(state='normal')
-                    self.status_var.set("Ready to generate config file")
+                    self.status_var.set("Ready to generate config files")
                 elif self.use_custom_ico_var.get():
                     self.extract_button.config(state='normal')
                     self.status_var.set(
-                        "Ready to generate config file (using custom ICO)")
+                        "Ready to generate config files (using custom ICO)")
                 else:
                     self.extract_button.config(state='disabled')
                     self.status_var.set("Please select game EXE file")
             else:
+                # No ResourceHacker tool, can generate directly
                 self.extract_button.config(state='normal')
                 self.status_var.set(
-                    "Ready to generate config file (will use default EXE)")
+                    "Ready to generate config files (will use default EXE)")
         else:
             self.extract_button.config(state='disabled')
-            self.status_var.set("Please fetch game info first")
+            self.status_var.set("Please get game information first")
 
     def update_header_display(self):
         """Update Header image display"""
@@ -1141,11 +1288,12 @@ class GSEGeneratorGUI:
         if os.path.exists(header_path):
             try:
                 img = Image.open(header_path)
+                # Resize image to fit display area
                 img.thumbnail((450, 200), Image.Resampling.LANCZOS)
                 photo = ImageTk.PhotoImage(img)
 
                 self.header_label.config(image=photo, text="")
-                self.header_label.image = photo
+                self.header_label.image = photo  # Keep reference
             except Exception as e:
                 self.header_label.config(
                     text=f"Header image load failed\n{str(e)}")
@@ -1158,11 +1306,12 @@ class GSEGeneratorGUI:
         if os.path.exists(logo_path):
             try:
                 img = Image.open(logo_path)
+                # Resize image to fit display area
                 img.thumbnail((400, 150), Image.Resampling.LANCZOS)
                 photo = ImageTk.PhotoImage(img)
 
                 self.logo_label.config(image=photo, text="")
-                self.logo_label.image = photo
+                self.logo_label.image = photo  # Keep reference
             except Exception as e:
                 self.logo_label.config(text=f"Logo load failed\n{str(e)}")
         else:
@@ -1170,6 +1319,7 @@ class GSEGeneratorGUI:
 
     def update_dlc_display(self):
         """Update DLC display"""
+        # Clear list
         self.dlc_listbox.delete(0, tk.END)
 
         dlc_list = self.game_info.get('dlc_list', {})
@@ -1183,94 +1333,101 @@ class GSEGeneratorGUI:
             self.dlc_count_var.set(f"DLC Count: {len(dlc_list)}")
 
     def _handle_fetch_error(self, error_msg):
-        """Handle fetch info error"""
+        """Handle fetch information error"""
         self.fetch_button.config(state='normal')
-        self.fetch_button.config(text="Fetch Game Info")
+        self.fetch_button.config(text="Get Game Info")
         messagebox.showerror(
-            "Error", "Failed to fetch game info, please check network or use network proxy")
+            "Error", "Failed to get game information, please check network or use network proxy")
 
     def on_language_change(self, event=None):
         """Update game_language variable when language selection changes"""
         selected_language = self.language_var.get()
         if selected_language in self.language_mapping:
-            self.game_language.set(self.language_mapping[selected_language])
+            self.game_language.set(
+                self.language_mapping[selected_language])
 
     def browse_achievement_html_file(self):
         filename = filedialog.askopenfilename(
             title="Select Achievement HTML File",
-            filetypes=[("HTML files", "*.html *.htm"), ("All files", "*.*")]
+            filetypes=[("HTML files", "*.html *.htm"),
+                       ("All files", "*.*")]
         )
         if filename:
             self.achievement_html_path_var.set(filename)
 
     def open_url(self, url):
         if self.appid_var.get().strip():
-            webbrowser.open(url)
+            webbrowser.open(url)  # Open link in default browser
         else:
             messagebox.showwarning("Warning", "Please enter AppID")
 
     def browse_info_html_file(self):
         filename = filedialog.askopenfilename(
-            title="Select Game Info HTML File",
-            filetypes=[("HTML files", "*.html *.htm"), ("All files", "*.*")]
+            title="Select Game Information HTML File",
+            filetypes=[("HTML files", "*.html *.htm"),
+                       ("All files", "*.*")]
         )
         if filename:
             self.info_html_path_var.set(filename)
 
     def extract_achievements(self):
-        # Validate required fields
+        # First validate required fields
         if not self.username_var.get().strip():
-            messagebox.showerror("Error", "Please fill in username")
+            messagebox.showerror("Error", "Please enter username")
             return
 
         if not self.userid_var.get().strip():
-            messagebox.showerror("Error", "Please fill in user ID")
+            messagebox.showerror("Error", "Please enter user ID")
             return
 
         if not self.info_html_path_var.get().strip() and not self.appid_var.get().strip():
             messagebox.showerror("Error", "Please enter AppID")
             return
 
-        # Verify game info has been fetched
+        # Validate if game information has been fetched
         if not self.game_info_fetched:
-            messagebox.showerror("Error", "Please fetch game info first")
+            messagebox.showerror(
+                "Error", "Please get game information first")
             return
 
-        # If generate patch is checked, perform patch-related validation and configuration
+        # If patch generation is checked, perform patch-related validation and configuration
         if self.generate_patch_var.get():
+            # Check patch files
             if not self.check_patch_files():
                 return
 
+            # Select steamapi dll folder
             if not self.select_steamapi_dll_folder():
                 messagebox.showwarning(
-                    "Warning", "Steamapi dll folder not selected, operation cancelled")
+                    "Warning", "steamapi dll folder not selected, operation cancelled")
                 return
 
+            # Select patch type
             self.patch_type = self.select_patch_type()
             if not self.patch_type:
                 messagebox.showwarning(
                     "Warning", "Patch type not selected, operation cancelled")
                 return
 
-        html_path = self.achievement_html_path_var.get()
-
-        if os.path.isfile("achdb.html"):
-            self.achievement_html_path_var.set("achdb.html")
-            self.achievement_processing_failed = False
-        else:
-            if not html_path or not os.path.exists(html_path):
-                self.achievement_processing_failed = True
-                messagebox.showwarning(
-                    "Warning", "Missing SteamDB achievement HTML page, cannot display achievement configuration, please read README file for details")
-
-            if html_path:
-                if not os.path.splitext(html_path)[1].lower() == '.html':
+        # Check if HTML file is provided
+        if not self.achievement_html_path_var.get():
+            if os.path.isfile("achdb.html"):
+                self.achievement_html_path_var.set("achdb.html")
+                self.achievement_processing_failed = False
+            else:
+                if not self.achievement_html_path_var.get() or not os.path.exists(self.achievement_html_path_var.get()):
                     self.achievement_processing_failed = True
-                    messagebox.showerror("Warning",
-                                         "Not HTML file type, achievement fetch failed"
-                                         )
-                else:
-                    self.achievement_processing_failed = False
+                    messagebox.showwarning(
+                        "Warning", "Missing SteamDB achievement HTML page, cannot display achievement configuration, please read README file for details")
+        else:
+            # Check html file type
+            if not (os.path.splitext(self.achievement_html_path_var.get())[1].lower() == '.html' or os.path.splitext(self.achievement_html_path_var.get())[1].lower() == '.htm'):
+                self.achievement_processing_failed = True
+                messagebox.showerror("Warning",
+                                     "Not an HTML file type, achievement fetch failed"
+                                     )
+            else:
+                self.achievement_processing_failed = False
 
         # If custom ICO icon is selected, show selection dialog
         if self.use_custom_ico_var.get():
@@ -1283,9 +1440,9 @@ class GSEGeneratorGUI:
         self.extract_button.config(state='disabled')
         self.progress.start()
 
-        # Execute extraction in new thread
+        # Execute extraction operation in new thread
         threading.Thread(target=self._extract_worker,
-                         args=(html_path,), daemon=True).start()
+                         args=(self.achievement_html_path_var.get(),), daemon=True).start()
 
     def _extract_worker(self, html_path):
         game_root_path = self.game_root_path_var.get().strip()
@@ -1296,81 +1453,101 @@ class GSEGeneratorGUI:
             messagebox.showerror(
                 "Error", "Please select a valid game root directory")
             self.progress.stop()
-            self.status_var.set("Please reselect the game root directory")
+            self.status_var.set("Please reselect game root directory")
             return
 
         if not exe_path or not os.path.isfile(exe_path) or not exe_path.endswith(".exe"):
             messagebox.showerror("Error", "Please select an EXE file")
             self.progress.stop()
-            self.status_var.set("Please reselect the game EXE file")
+            self.status_var.set("Please reselect game EXE file")
             return
 
         if not exe_path or not os.path.isfile(exe_path) or not os.path.commonpath([game_root_path, exe_path]) == cmp_path:
             messagebox.showerror(
                 "Error", "Please select a valid game EXE file within the game root directory")
             self.status_var.set(
-                "Please reselect the game EXE file or the game root directory")
+                "Please reselect game EXE file or game root directory")
             self.progress.stop()
             return
 
         try:
+            # Get game name
             game_name = self.game_info.get('game_name', 'Game')
             safe_game_name = re.sub(r'[<>:"/\\|?*]', '_', game_name)
 
+            # First copy source folder to Output/{game name} folder
             self.status_var.set("Copying source folder...")
             self.copy_source_to_output(safe_game_name)
 
+            # Process game EXE file and icon replacement
             self.status_var.set("Processing game EXE file...")
             self.process_game_exe(safe_game_name)
 
             achievements = []
 
+            # Only process achievements if HTML file is provided and not marked as failed
             if html_path and os.path.exists(html_path) and not self.achievement_processing_failed:
                 self.status_var.set("Parsing HTML file...")
-                achievements = self.extract_achievements_from_html(html_path)
+                # Extract achievement data
+                achievements = self.extract_achievements_from_html(
+                    html_path)
 
+                # Check achievement count
                 if len(achievements) == 0:
                     messagebox.showwarning(
-                        "Warning", "HTML file provided but no achievement data extracted\nPlease get a valid SteamDB achievements HTML page, see README for details")
+                        "Warning", "HTML file provided but no achievement data retrieved\nPlease get valid SteamDB achievement HTML page, see README file for details")
                     self.achievement_processing_failed = True
 
+                # Copy images
                 if achievements:
                     self.status_var.set("Copying image files...")
-                    self.copy_achievement_images(achievements, safe_game_name)
+                    self.copy_achievement_images(
+                        achievements, safe_game_name)
 
-                    self.status_var.set("Saving configuration file...")
+                    # Auto save JSON file
+                    self.status_var.set("Saving config files...")
                     self.save_json_file(achievements, safe_game_name)
 
-            self.status_var.set("Generating configuration files...")
+            # Generate config files
+            self.status_var.set("Generating config files...")
             self.generate_config_files(safe_game_name)
 
+            # Copy game images to Output folder
             self.status_var.set("Copying game images...")
             self.copy_game_images_to_output(safe_game_name)
 
-            self.status_var.set("Configuring the launcher...")
+            # Modify ColdClientLoader.ini
+            self.status_var.set("Configuring launcher...")
             self.update_cold_client_loader_ini(safe_game_name)
 
-            self.status_var.set("Cleaning up files...")
+            # Delete steamclient_loader_x64.exe
+            self.status_var.set("Cleaning files...")
             self.remove_steamclient_loader(safe_game_name)
 
+            # If patch generation is checked, execute patch generation operation
             if self.generate_patch_var.get():
                 self.status_var.set("Generating patch...")
                 self.generate_patch(safe_game_name)
 
-            self.status_var.set("Cleaning up temporary files...")
+            # Clean _temp directory
+            self.status_var.set("Cleaning temporary files...")
             self.cleanup_temp_directory()
 
+            # Update UI in main thread
             self.root.after(0, self._show_results,
                             achievements, safe_game_name)
 
         except Exception as e:
             messagebox.showerror("Error",
-                                 f"Invalid HTML file, or not a valid SteamDB achievements page, see README for more information\nInfo: {e}",
+                                 f"Not a valid HTML file, or not a valid SteamDB achievement page, more info please visit README file \nInfo:{e}",
                                  )
             self.progress.stop()
             self.extract_button.config(state='enable')
+            # self.root.after(0, lambda: self._handle_error(str(e)))
 
     def generate_patch(self, safe_game_name):
+        """Generate patch"""
+
         game_root_path = self.game_root_path_var.get().strip()
         if not game_root_path or not os.path.exists(game_root_path):
             messagebox.showerror(
@@ -1379,19 +1556,22 @@ class GSEGeneratorGUI:
         cmp_path = game_root_path.replace('/', '\\')
         if not os.path.commonpath([game_root_path, self.steamapi_dll_path]) == cmp_path:
             messagebox.showerror(
-                "Error", "Please select the steamapi dll folder within the game root directory")
+                "Error", "Please select steamapi dll folder within the game root directory")
             return
 
         try:
+            # Get game root directory and steamapi dll relative path
             game_root_path = self.game_root_path_var.get().strip()
             if not game_root_path:
                 messagebox.showerror(
-                    "Error", "Please select the game root directory")
+                    "Error", "Please select game root directory")
                 return
 
+            # Get steamapi dll file relative path
             dll_relative_path = self.get_relative_path(
                 game_root_path, self.steamapi_dll_path)
 
+            # Create relative path folder structure in _temp
             temp_dir = "_temp"
             if not os.path.exists(temp_dir):
                 os.makedirs(temp_dir)
@@ -1400,33 +1580,40 @@ class GSEGeneratorGUI:
             if not os.path.exists(temp_dll_path):
                 os.makedirs(temp_dll_path)
 
-            source_dll_dir = os.path.join("source", "GSE_DLL", self.patch_type)
+            # Copy corresponding DLL files based on selected type
+            source_dll_dir = os.path.join(
+                "source", "GSE_DLL", self.patch_type)
 
+            # Copy all files to temp relative path
             for item in os.listdir(source_dll_dir):
                 source_item = os.path.join(source_dll_dir, item)
                 target_item = os.path.join(temp_dll_path, item)
 
                 if os.path.isfile(source_item):
                     shutil.copy2(source_item, target_item)
-                    print(f"Copied DLL file: {item}")
+                    print(f"Copy DLL file: {item}")
                 elif os.path.isdir(source_item):
                     if os.path.exists(target_item):
                         shutil.rmtree(target_item)
                     shutil.copytree(source_item, target_item)
-                    print(f"Copied DLL folder: {item}")
+                    print(f"Copy DLL folder: {item}")
 
+            # Move steam_settings folder to relative path
             output_steam_settings = os.path.join(
                 "Output", safe_game_name, "steam_settings")
-            temp_steam_settings = os.path.join(temp_dll_path, "steam_settings")
+            temp_steam_settings = os.path.join(
+                temp_dll_path, "steam_settings")
 
             if os.path.exists(output_steam_settings):
                 if os.path.exists(temp_steam_settings):
                     shutil.rmtree(temp_steam_settings)
                 shutil.copytree(output_steam_settings, temp_steam_settings)
-                print("Moved steam_settings folder to patch path")
+                print("Move steam_settings folder to patch path")
 
+            # Package as Patch.zip
             zip_path = os.path.join("Output", safe_game_name, "Patch.zip")
 
+            # Get root folder to be packaged (first level of relative path)
             relative_parts = dll_relative_path.split(os.sep)
             if relative_parts:
                 root_folder_name = relative_parts[0]
@@ -1436,16 +1623,18 @@ class GSEGeneratorGUI:
                     for root, dirs, files in os.walk(root_folder_path):
                         for file in files:
                             file_path = os.path.join(root, file)
+                            # Get path relative to temp_dir as path in zip
                             arc_path = os.path.relpath(file_path, temp_dir)
                             zipf.write(file_path, arc_path)
 
-                print(f"Patch generated: {zip_path}")
+                print(f"Patch packaged as: {zip_path}")
 
         except Exception as e:
             print(f"Failed to generate patch: {e}")
             messagebox.showerror("Error", f"Failed to generate patch: {e}")
 
     def update_cold_client_loader_ini(self, safe_game_name):
+        """Modify ColdClientLoader.ini file"""
         ini_path = os.path.join(
             "Output", safe_game_name, "ColdClientLoader.ini")
 
@@ -1455,11 +1644,14 @@ class GSEGeneratorGUI:
             return
 
         try:
+            # Get game name and AppID
             appid = self.appid_var.get().strip()
 
+            # Read INI file content
             with open(ini_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
+            # Calculate game relative path
             game_relative_path = ""
             game_root_path = self.game_root_path_var.get().strip()
             game_exe_path = self.exe_path_var.get().strip()
@@ -1468,29 +1660,35 @@ class GSEGeneratorGUI:
                 game_relative_path = self.get_relative_path(
                     game_root_path, game_exe_path)
             else:
+                # If root directory or EXE path is not set, use original logic
                 if game_exe_path and os.path.exists(game_exe_path):
                     game_relative_path = os.path.basename(game_exe_path)
                 else:
                     game_relative_path = f"{safe_game_name}.exe"
 
+            # Modify Exe path
             game_relative_path = self.get_relative_path(
                 game_root_path, game_exe_path).replace('\\', '/')
             exe_pattern = r'^Exe=.*$'
-            new_exe_line = f"Exe={safe_game_name}"+"/"+f"{game_relative_path}"
+            new_exe_line = f"Exe={safe_game_name}" + \
+                "/"+f"{game_relative_path}"
             content = re.sub(exe_pattern, new_exe_line,
                              content, flags=re.MULTILINE)
 
+            # Modify AppId
             appid_pattern = r'^AppId=.*$'
             new_appid_line = f"AppId={appid}"
             content = re.sub(appid_pattern, new_appid_line,
                              content, flags=re.MULTILINE)
 
+            # Modify overlay injection
             if self.overlay_var.get():
                 appid_pattern = r'^ForceInjectGameOverlayRenderer=.*$'
                 new_appid_line = f"ForceInjectGameOverlayRenderer=1"
                 content = re.sub(appid_pattern, new_appid_line,
                                  content, flags=re.MULTILINE)
 
+            # Write back to file
             with open(ini_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
@@ -1501,6 +1699,7 @@ class GSEGeneratorGUI:
             print(f"Failed to modify ColdClientLoader.ini: {e}")
 
     def remove_steamclient_loader(self, safe_game_name):
+        """Delete steamclient_loader_x64.exe file in Output folder"""
         loader_path = os.path.join(
             "Output", safe_game_name, "steamclient_loader_x64.exe")
 
@@ -1511,10 +1710,14 @@ class GSEGeneratorGUI:
             except Exception as e:
                 print(f"Failed to delete steamclient_loader_x64.exe: {e}")
         else:
-            print("steamclient_loader_x64.exe file does not exist, no need to delete")
+            print(
+                "steamclient_loader_x64.exe file does not exist, no need to delete")
 
     def process_game_exe(self, safe_game_name):
+        """Process game EXE file and icon replacement"""
+        # Check if ResourceHacker exists
         if not self.has_resource_hacker:
+            # Directly copy steamclient_loader_x64.exe and rename
             source_loader = os.path.join(
                 "source", "steamclient_loader_x64.exe")
             if os.path.exists(source_loader):
@@ -1523,10 +1726,10 @@ class GSEGeneratorGUI:
                     output_dir, f"{safe_game_name}.exe")
                 shutil.copy2(source_loader, final_exe_path)
                 print(
-                    f"Directly copied steamclient_loader_x64.exe to: {final_exe_path}")
+                    f"Directly copied steamclient_loader_x64.exe as: {final_exe_path}")
                 self.icon_replacement_failed = True
                 messagebox.showwarning(
-                    "Warning", "Failed to replace EXE icon, please check the integrity of the tool folder, see README for details")
+                    "Warning", "Cannot replace EXE icon, please check tool folder integrity, please read README file for details")
             return
         else:
             self.icon_replacement_failed = False
@@ -1534,7 +1737,8 @@ class GSEGeneratorGUI:
         exe_path = self.exe_path_var.get().strip()
         if not exe_path or not os.path.exists(exe_path):
             self.exe_valid = False
-            print("Warning: Game EXE file not selected or does not exist")
+            print("Warning: Game EXE file not selected or file does not exist")
+            # If no game EXE file is selected, also directly copy steamclient_loader_x64.exe
             source_loader = os.path.join(
                 "source", "steamclient_loader_x64.exe")
             if os.path.exists(source_loader):
@@ -1543,7 +1747,7 @@ class GSEGeneratorGUI:
                     output_dir, f"{safe_game_name}.exe")
                 shutil.copy2(source_loader, final_exe_path)
                 print(
-                    f"Directly copied steamclient_loader_x64.exe to: {final_exe_path}")
+                    f"Directly copied steamclient_loader_x64.exe as: {final_exe_path}")
             return
         else:
             self.exe_valid = True
@@ -1552,29 +1756,37 @@ class GSEGeneratorGUI:
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
 
+        # Copy game EXE to _temp directory
         game_exe_temp = os.path.join(temp_dir, "game.exe")
         shutil.copy2(exe_path, game_exe_temp)
         print(f"Game EXE copied to: {game_exe_temp}")
 
-        source_loader = os.path.join("source", "steamclient_loader_x64.exe")
+        # Copy steamclient_loader_x64.exe to _temp directory
+        source_loader = os.path.join(
+            "source", "steamclient_loader_x64.exe")
         if os.path.exists(source_loader):
-            loader_temp = os.path.join(temp_dir, "steamclient_loader_x64.exe")
+            loader_temp = os.path.join(
+                temp_dir, "steamclient_loader_x64.exe")
             shutil.copy2(source_loader, loader_temp)
             print(f"steamclient_loader_x64.exe copied to: {loader_temp}")
 
+            # Decide which icon replacement method to use based on whether custom ICO icon is used
             output_exe = os.path.join(temp_dir, "output.exe")
             success = False
 
             if self.use_custom_ico_var.get() and self.custom_ico_path:
+                # Use custom ICO file
                 print(f"Using custom ICO file: {self.custom_ico_path}")
                 success = replace_exe_icon_with_ico(
                     self.custom_ico_path, loader_temp, output_exe)
             else:
+                # Use original icon extraction method
                 print("Using game EXE icon extraction method")
                 success = replace_exe_icon(
                     game_exe_temp, loader_temp, output_exe)
 
             if success and os.path.exists(output_exe):
+                # Copy directly to Output folder
                 output_dir = os.path.join("Output", safe_game_name)
                 final_exe_path = os.path.join(
                     output_dir, f"{safe_game_name}.exe")
@@ -1586,28 +1798,33 @@ class GSEGeneratorGUI:
                 self.icon_replacement_failed = True
         else:
             print(
-                f"Warning: steamclient_loader_x64.exe does not exist in the source folder: {source_loader}")
+                f"Warning: steamclient_loader_x64.exe does not exist in source folder: {source_loader}")
 
     def cleanup_temp_directory(self):
+        """Clean _temp directory"""
         temp_dir = "_temp"
         if os.path.exists(temp_dir):
             try:
                 shutil.rmtree(temp_dir)
-                print("_temp directory cleaned up")
+                print("_temp directory cleaned")
             except Exception as e:
-                print(f"Failed to clean up _temp directory: {e}")
+                print(f"Failed to clean _temp directory: {e}")
 
     def copy_source_to_output(self, safe_game_name):
+        """Copy source folder contents to Output/{game name} folder, excluding GSE_DLL folder"""
         source_dir = "source"
         output_dir = os.path.join("Output", safe_game_name)
 
+        # Create Output/{game name} folder
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
+        # If source folder exists, copy all files and folders in it (excluding GSE_DLL)
         if os.path.exists(source_dir):
             for item in os.listdir(source_dir):
+                # Exclude GSE_DLL folder
                 if item == "GSE_DLL":
-                    print(f"Skipping folder: {item}")
+                    print(f"Skip folder: {item}")
                     continue
 
                 source_path = os.path.join(source_dir, item)
@@ -1615,60 +1832,69 @@ class GSEGeneratorGUI:
 
                 if os.path.isfile(source_path):
                     shutil.copy2(source_path, target_path)
-                    print(f"Copied file: {item}")
+                    print(f"Copy file: {item}")
                 elif os.path.isdir(source_path):
                     if os.path.exists(target_path):
                         shutil.rmtree(target_path)
                     shutil.copytree(source_path, target_path)
-                    print(f"Copied folder: {item}")
+                    print(f"Copy folder: {item}")
             overlay_config_path = os.path.join(
                 output_dir, "steam_settings", "configs.overlay.ini")
             if os.path.exists(overlay_config_path) and not self.overlay_var.get():
                 os.remove(overlay_config_path)
-                print("Deleted file: steam_settings/configs.overlay.ini")
+                print("Delete file: steam_settings/configs.overlay.ini")
 
         else:
             print("Warning: source folder does not exist")
 
     def copy_game_images_to_output(self, safe_game_name):
+        """Copy game images to Output/{game name}/steam_settings folder"""
         temp_dir = "_temp"
         output_steam_settings = os.path.join(
             "Output", safe_game_name, "steam_settings")
 
+        # Ensure target folder exists
         if not os.path.exists(output_steam_settings):
             os.makedirs(output_steam_settings)
 
+        # Copy three game images
         game_images = ["header.jpg", "logo.png", "library_600x900.jpg"]
 
         for image_file in game_images:
             temp_image_path = os.path.join(temp_dir, image_file)
             if os.path.exists(temp_image_path):
-                target_path = os.path.join(output_steam_settings, image_file)
+                target_path = os.path.join(
+                    output_steam_settings, image_file)
                 try:
                     shutil.copy2(temp_image_path, target_path)
-                    print(f"Copied game image successfully: {image_file}")
+                    print(f"Copy game image success: {image_file}")
                 except Exception as e:
-                    print(f"Failed to copy game image: {image_file} - {e}")
+                    print(f"Copy game image failed: {image_file} - {e}")
             else:
                 print(f"Game image does not exist: {temp_image_path}")
 
     def _show_results(self, achievements, safe_game_name):
+        """Show results"""
         self.progress.stop()
         self.extract_button.config(state='normal')
 
-        result_message = f"Configuration files generated successfully!\n"
+        # Build result message
+        result_message = f"Config file generation complete!\n"
 
         if achievements:
-            result_message += f"Number of achievements: {len(achievements)}\n"
+            result_message += f"Achievement count: {len(achievements)}\n"
+            # Set game name in achievement display window
             game_name = self.game_info.get('game_name', 'Game')
             achievement_window = AchievementDisplayWindow(
                 achievements, game_name)
 
+        # Build generated files list
         generated_files = ["steam_settings folder"]
 
+        # EXE file status
         if self.icon_replacement_failed:
             messagebox.showerror("Warning",
-                                 "Failed to replace the icon, please check if the game EXE file is valid and has an icon, or if the ICO file is valid"
+                                 "Icon replacement failed, is the game EXE file valid and has icon, or is the ICO icon valid"
                                  )
         if not self.exe_valid:
             messagebox.showerror("Warning",
@@ -1679,42 +1905,60 @@ class GSEGeneratorGUI:
             generated_files.append("Game EXE file (no icon)")
         else:
             generated_files.append("Game EXE file")
-
+        # Achievement configuration status
         if self.achievement_processing_failed or self.overlay_files_missing:
             generated_files.append(
-                "Failed to generate achievements and UI configuration")
+                "Achievement and interface config generation failed")
         else:
-            generated_files.append("Achievements and UI configuration")
+            generated_files.append("Achievement and interface config")
 
         generated_files.append("Configured ColdClientLoader.ini")
 
+        # If patch was generated, add to list
         if self.generate_patch_var.get():
             generated_files.append("Patch.zip patch file")
 
-        result_message += f"The following files have been generated in the Output/{safe_game_name} folder:\n"
+        result_message += f"Generated the following files to Output/{safe_game_name} folder:\n"
         for file_info in generated_files:
             result_message += f"- {file_info}\n"
 
-        self.status_var.set(f"Configuration files generated successfully!")
+        self.status_var.set(f"Successfully generated config files!")
         messagebox.showinfo("Success", result_message)
 
+    def _handle_error(self, error_msg):
+        """Handle error"""
+        self.progress.stop()
+        self.extract_button.config(state='normal')
+        self.status_var.set("Processing failed")
+        messagebox.showerror("Error", f"Processing failed: {error_msg}")
+
     def generate_config_files(self, safe_game_name):
+        """Generate config files"""
+        # Generate configs.user.ini
         self.generate_user_config(safe_game_name)
+
+        # Generate configs.app.ini
         self.generate_app_config(safe_game_name)
+
+        # Generate steam_appid.txt
         self.generate_steam_appid(safe_game_name)
 
     def generate_user_config(self, safe_game_name):
+        """Generate configs.user.ini file"""
         config_content = "[user::general]\n"
         config_content += f"account_name={self.username_var.get().strip()}\n"
         config_content += f"account_steamid={self.userid_var.get().strip()}\n"
         config_content += f"language={self.game_language.get()}\n"
 
+        # If local storage is enabled, add related configuration
         if self.local_storage_var.get():
             config_content += "\n[user::saves]\n"
             config_content += "local_save_path=./GSE Saves\n"
             config_content += "saves_folder_name=Goldberg SteamEmu Saves\n"
 
-        config_dir = os.path.join("Output", safe_game_name, "steam_settings")
+        # Ensure target folder exists
+        config_dir = os.path.join(
+            "Output", safe_game_name, "steam_settings")
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
 
@@ -1723,8 +1967,10 @@ class GSEGeneratorGUI:
             f.write(config_content)
 
     def generate_app_config(self, safe_game_name):
+        """Generate configs.app.ini file"""
         config_content = ""
 
+        # Add DLC configuration
         if self.game_info and self.game_info.get('dlc_list'):
             config_content += "[app::dlcs]\n"
             config_content += "unlock_all=0\n"
@@ -1732,6 +1978,7 @@ class GSEGeneratorGUI:
                 config_content += f"{dlc_id}={dlc_name}\n"
 
         if config_content:
+            # Ensure target folder exists
             config_dir = os.path.join(
                 "Output", safe_game_name, "steam_settings")
             if not os.path.exists(config_dir):
@@ -1742,7 +1989,10 @@ class GSEGeneratorGUI:
                 f.write(config_content)
 
     def generate_steam_appid(self, safe_game_name):
-        config_dir = os.path.join("Output", safe_game_name, "steam_settings")
+        """Generate steam_appid.txt file"""
+        # Ensure target folder exists
+        config_dir = os.path.join(
+            "Output", safe_game_name, "steam_settings")
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
 
@@ -1751,7 +2001,10 @@ class GSEGeneratorGUI:
             f.write(self.appid_var.get().strip())
 
     def save_json_file(self, achievements, safe_game_name):
-        config_dir = os.path.join("Output", safe_game_name, "steam_settings")
+        """Auto save JSON file"""
+        # Ensure target folder exists
+        config_dir = os.path.join(
+            "Output", safe_game_name, "steam_settings")
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
 
@@ -1760,6 +2013,7 @@ class GSEGeneratorGUI:
             json.dump(achievements, f, ensure_ascii=False, indent=2)
 
     def extract_achievements_from_html(self, html_file_path):
+        """Extract achievement data"""
         with open(html_file_path, 'r', encoding='utf-8') as file:
             html_content = file.read()
 
@@ -1768,9 +2022,20 @@ class GSEGeneratorGUI:
         achievement_divs = soup.find_all('div', class_='achievement')
 
         sc_accesible = True
-        enable_local_html = False
+        sc_enable = True
 
-        if not os.path.isfile("achs.html"):
+        if html_file_path and (not self.achievement_processing_failed) and os.path.exists(html_file_path):
+            sc_enable = self.enable_sc_localization()
+        else:
+            self.achievement_processing_failed = True
+            messagebox.showerror(
+                "SteamDB achievement local HTML file not found",
+                f"Please check if the path file exists"
+            )
+            return False
+
+        if sc_enable:
+            # Check if SteamCommunity link is accessible
             steamcommunity_url = f"https://steamcommunity.com/stats/{self.appid_var.get()}/achievements/?l={self.game_language.get()}"
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -1780,45 +2045,62 @@ class GSEGeneratorGUI:
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
             }
-            try:
-                steamcommunity_response = requests.get(
-                    steamcommunity_url, headers=headers, timeout=10)
-                steamcommunity_response.raise_for_status()
-                community_html_file = steamcommunity_response.content
-            except requests.RequestException as e:
-                print(f"Failed to access SteamCommunity page: {e}")
-                messagebox.showwarning(
-                    "Warning", f"Unable to access SteamCommunity, please check your network connection\nError: {e}")
-                success = self.select_local_achievement()
-                if not success:
-                    sc_accesible = False
-                else:
-                    enable_local_html = True
-        else:
-            self.community_achievement_html = "achs.html"
-            enable_local_html = True
 
-        if enable_local_html:
-            path = self.community_achievement_html
-            with open(path, 'r', encoding='utf-8') as file:
-                community_html_file = file.read()
+            success = False
+            while not success:
+                try:
+                    steamcommunity_response = requests.get(
+                        steamcommunity_url, headers=headers, timeout=10)
+                    steamcommunity_response.raise_for_status()
+                    community_html_file = steamcommunity_response.content
+                    success = True
+                except requests.RequestException as e:
+                    print(f"Cannot access SteamCommunity page: {e}")
+                    messagebox.showwarning(
+                        "Warning", f"Cannot access SteamCommunity, please check network connection\nError：{e}")
+
+                    # Show retry option dialog
+                    retry = messagebox.askyesno(
+                        "Connection Failed",
+                        "Retry connecting to Steam Community?\n\nSelecting 'No' will not use Steam Community achievement page as translation reference."
+                    )
+
+                    if not retry:
+                        messagebox.showerror(
+                            "Failed to get Steam Community localized achievements",
+                            "Will not use Steam Community achievement page as translation reference"
+                        )
+                        sc_accesible = False
+                        break
+
+            if success:
+                sc_accesible = True
+                path = self.community_achievement_html
+                with open(path, 'r', encoding='utf-8') as file:
+                    community_html_file = file.read()
+        else:
+            sc_accesible = False
 
         for achievement_div in achievement_divs:
             try:
+                # Extract achievement ID
                 achievement_id = achievement_div.get('id', '')
                 name = achievement_id.replace(
                     'achievement-', '') if achievement_id.startswith('achievement-') else achievement_id
 
+                # Extract achievement name
                 achievement_name_div = achievement_div.find(
                     'div', class_='achievement_name')
                 display_name = achievement_name_div.get_text(
                     strip=True) if achievement_name_div else ""
 
+                # Extract achievement description
                 achievement_desc_div = achievement_div.find(
                     'div', class_='achievement_desc')
                 description_raw = achievement_desc_div.get_text(
                     strip=True) if achievement_desc_div else ""
 
+                # Check if it's a hidden achievement
                 hidden = 0
                 description_clean = description_raw
 
@@ -1829,22 +2111,37 @@ class GSEGeneratorGUI:
                     i_tag.decompose()
                 description_clean = desc_copy.get_text(
                     strip=True) if desc_copy else ""
+                description_clean = description_clean.rstrip('。')
 
+                # Extract icon
                 icon_img = achievement_div.find(
                     'img', class_='achievement_image')
                 icon = ""
-                if icon_img and icon_img.get('src'):
+                if icon_img:
                     src = icon_img.get('src')
-                    filename = src.split('/')[-1]
-                    icon = filename
+                    if src and '.jpg' in src:
+                        # Handle normal src path
+                        filename = src.split('/')[-1]
+                        icon = filename
+                    else:
+                        # Handle data-name case
+                        data_name = icon_img.get('data-name')
+                        if data_name:
+                            icon = data_name
 
+                # Extract gray icon
                 icon_gray_img = achievement_div.find(
                     'img', class_='achievement_image_small')
                 icongray = ""
-                if icon_gray_img and icon_gray_img.get('src'):
+                if icon_gray_img:
                     src = icon_gray_img.get('src')
-                    filename = src.split('/')[-1]
-                    icongray = filename
+                    if src and '.jpg' in src:
+                        filename = src.split('/')[-1]
+                        icongray = filename
+                    else:
+                        data_name = icon_img.get('data-name')
+                        if data_name:
+                            icongray = data_name
 
                 achievement_data = {
                     "name": name,
@@ -1871,6 +2168,7 @@ class GSEGeneratorGUI:
             achievement_rows = steamcommunity_soup.find_all(
                 'div', class_='achieveRow')
 
+            # Get more accurate achievement information from SteamCommunity page
             for achievement_row, achievement in zip(achievement_rows, achievements):
                 try:
                     achieve_txt_div = achievement_row.find(
@@ -1895,17 +2193,21 @@ class GSEGeneratorGUI:
         return achievements
 
     def copy_achievement_images(self, achievements, safe_game_name):
+        """Copy achievement images to Output/{game name}/steam_settings/achievement_images folder"""
         source_dir = "imgs"
         target_dir = os.path.join(
             "Output", safe_game_name, "steam_settings", "achievement_images")
 
+        # Ensure target folder exists
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
         if not os.path.exists(source_dir):
-            print(f"Warning: Source image folder does not exist: {source_dir}")
+            print(
+                f"Warning: Source image folder does not exist: {source_dir}")
             return
 
+        # Collect needed image filenames
         image_files_needed = set()
         for achievement in achievements:
             if achievement.get('icon'):
@@ -1913,6 +2215,7 @@ class GSEGeneratorGUI:
             if achievement.get('icongray'):
                 image_files_needed.add(achievement['icongray'])
 
+        # Copy files to achievement_images folder
         for filename in image_files_needed:
             source_path = os.path.join(source_dir, filename)
             target_path = os.path.join(target_dir, filename)
@@ -1920,9 +2223,9 @@ class GSEGeneratorGUI:
             if os.path.exists(source_path):
                 try:
                     shutil.copy2(source_path, target_path)
-                    print(f"Copied successfully: {filename}")
+                    print(f"Copy success: {filename}")
                 except Exception as e:
-                    print(f"Failed to copy: {filename} - {e}")
+                    print(f"Copy failed: {filename} - {e}")
             else:
                 print(f"Source file does not exist: {source_path}")
 
