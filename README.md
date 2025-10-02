@@ -4,7 +4,7 @@ A stable Goldberg Steam Emulator configuration generation tool
 
 ## Interface
 
-![img1](imgs\img1.png)
+![img1](https://img.cdn1.vip/i/68de658658cc5_1759405446.webp)
 
 ## Features
 
@@ -53,13 +53,13 @@ Since certain essential information must be retrieved from SteamDB, and accessin
 - **Achievement Images:**
   - Achievement images will be placed in the cache folder saved from SteamDB's achievement page. Rename the cache folder to `imgs` and place it in the application root directory
 
-![img3](imgs\img3.png)
+![img3](https://img.cdn1.vip/i/68de65bab2263_1759405498.webp)
 
 ### How to Download Local Web Pages
 
 1. Use a browser to open specific information pages. Links to the local pages mentioned above will be provided in the generator interface
 
-![img2](imgs\img2.png)
+![img2](https://img.cdn1.vip/i/68de65aaa480c_1759405482.png)
 
 2. After opening the webpage, press `Ctrl+S` in your browser (Chrome or Edge) to save the page. This will generate the `{html_name}.html` page file and the image cache `html_name` folder
 
