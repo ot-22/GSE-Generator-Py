@@ -48,8 +48,10 @@ Since certain essential information must be retrieved from SteamDB, and accessin
 
 - **Achievement List:**
   - Achievement lists must be obtained from local HTML pages downloaded from specific SteamDB pages. You can rename the SteamDB achievement HTML file to `achdb.html` and place it in the application root directory to enable offline retrieval mode, or specify your Achievement Page HTML file in the Achievement HTML File text box
-  - Achievement names and descriptions obtained from SteamDB are in English by default. Based on your selected language, the generator will convert English text to localized text online. If retrieval fails due to network or other reasons, you'll be asked whether to use the local HTML file. This local webpage is obtained from Steam pages. (You can also use your browser's translation feature (such as Firefox) to download the already translated SteamDB local achievement page, and use this tool to parse the achievement list from the translated page to complete the achievement localization)
+  - The achievement information is obtained from the SteamDB page. You need to use a web browser to download the SteamDB achievement page for the given game. The achievement information on this page is defaulted to English. You can also use the browser's (such as Firefox) translation function to download the already translated SteamDB localized achievement page, and use this tool to parse the achievement list from the translated page to complete the achievement localization.
 
+    the Generator also provides another achievement translation method. Some games on the Steam Community provide official achievement translations. The generator has the option to fetch achievement translations online from the Steam Community. If there are network issues and the Steam Community cannot be accessed, you can also place the local Steam Community page renamed as "`achs.html`" in the program's root directory.
+  
 - **Achievement Images:**
   - Achievement images will be placed in the cache folder saved from SteamDB's achievement page. Rename the cache folder to `imgs` and place it in the application root directory
 

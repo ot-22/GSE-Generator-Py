@@ -2035,49 +2035,54 @@ class GSEGeneratorGUI:
             return False
 
         if sc_enable:
-            # Check if SteamCommunity link is accessible
-            steamcommunity_url = f"https://steamcommunity.com/stats/{self.appid_var.get()}/achievements/?l={self.game_language.get()}"
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-            }
+            if not os.path.isfile("achs.html"):
+                # Check if SteamCommunity link is accessible
+                steamcommunity_url = f"https://steamcommunity.com/stats/{self.appid_var.get()}/achievements/?l={self.game_language.get()}"
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1',
+                }
 
-            success = False
-            while not success:
-                try:
-                    steamcommunity_response = requests.get(
-                        steamcommunity_url, headers=headers, timeout=10)
-                    steamcommunity_response.raise_for_status()
-                    community_html_file = steamcommunity_response.content
-                    success = True
-                except requests.RequestException as e:
-                    print(f"Cannot access SteamCommunity page: {e}")
-                    messagebox.showwarning(
-                        "Warning", f"Cannot access SteamCommunity, please check network connection\nError：{e}")
+                success = False
+                while not success:
+                    try:
+                        steamcommunity_response = requests.get(
+                            steamcommunity_url, headers=headers, timeout=10)
+                        steamcommunity_response.raise_for_status()
+                        community_html_file = steamcommunity_response.content
+                        success = True
+                    except requests.RequestException as e:
+                        print(f"Cannot access SteamCommunity page: {e}")
+                        messagebox.showwarning(
+                            "Warning", f"Cannot access SteamCommunity, please check network connection\nError：{e}")
 
-                    # Show retry option dialog
-                    retry = messagebox.askyesno(
-                        "Connection Failed",
-                        "Retry connecting to Steam Community?\n\nSelecting 'No' will not use Steam Community achievement page as translation reference."
-                    )
-
-                    if not retry:
-                        messagebox.showerror(
-                            "Failed to get Steam Community localized achievements",
-                            "Will not use Steam Community achievement page as translation reference"
+                        # Show retry option dialog
+                        retry = messagebox.askyesno(
+                            "Connection Failed",
+                            "Retry connecting to Steam Community?\n\nSelecting 'No' will not use Steam Community achievement page as translation reference."
                         )
-                        sc_accesible = False
-                        break
 
-            if success:
-                sc_accesible = True
+                        if not retry:
+                            messagebox.showerror(
+                                "Failed to get Steam Community localized achievements",
+                                "Will not use Steam Community achievement page as translation reference"
+                            )
+                            sc_accesible = False
+                            break
+
+                if success:
+                    sc_accesible = True
+
+            else:
+                self.community_achievement_html = "achs.html"
                 path = self.community_achievement_html
                 with open(path, 'r', encoding='utf-8') as file:
                     community_html_file = file.read()
+
         else:
             sc_accesible = False
 
