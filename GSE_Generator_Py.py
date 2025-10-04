@@ -2173,22 +2173,38 @@ class GSEGeneratorGUI:
             achievement_rows = steamcommunity_soup.find_all(
                 'div', class_='achieveRow')
 
-            # Get more accurate achievement information from SteamCommunity page
-            for achievement_row, achievement in zip(achievement_rows, achievements):
+            # 从 SteamCommunity 页面获取更准确的成就信息，通过图标匹配
+            for achievement in achievements:
                 try:
-                    achieve_txt_div = achievement_row.find(
-                        'div', class_='achieveTxt')
-                    if achieve_txt_div:
-                        h3_tag = achieve_txt_div.find('h3')
-                        h5_tag = achieve_txt_div.find('h5')
-                        if h3_tag and h5_tag:
-                            display_name = h3_tag.text.strip()
-                            description = h5_tag.text.strip()
-                    if achievement_name_div and achievement_desc_div:
-                        if display_name:
-                            achievement['displayName'] = display_name
-                        if description:
-                            achievement['description'] = description
+                    page1_icon = achievement.get('icon', '')
+
+                    matching_row = None
+                    for achievement_row in achievement_rows:
+                        img_tag = achievement_row.find('img')
+                        if img_tag:
+                            src = img_tag.get('src', '')
+                            if src:
+                                page2_icon = src.split('/')[-1]
+                                if page1_icon == page2_icon:
+                                    matching_row = achievement_row
+                                    break
+
+                    if matching_row:
+                        achieve_txt_div = matching_row.find(
+                            'div', class_='achieveTxt')
+                        if achieve_txt_div:
+                            h3_tag = achieve_txt_div.find('h3')
+                            h5_tag = achieve_txt_div.find('h5')
+                            if h3_tag:
+                                display_name = h3_tag.text.strip()
+                                achievement['displayName'] = display_name
+                            if h5_tag:
+                                description = h5_tag.text.strip()
+                                achievement['description'] = description
+                    else:
+                        print(
+                            f"No matching achievements found, SteamDB achievements Page icon: {page1_icon}")
+
                 except Exception as e:
                     print(
                         f"Error getting achievement info from SteamCommunity page: {e}")
