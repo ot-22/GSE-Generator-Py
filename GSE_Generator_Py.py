@@ -2173,7 +2173,6 @@ class GSEGeneratorGUI:
             achievement_rows = steamcommunity_soup.find_all(
                 'div', class_='achieveRow')
 
-            # 从 SteamCommunity 页面获取更准确的成就信息，通过图标匹配
             for achievement in achievements:
                 try:
                     page1_icon = achievement.get('icon', '')
@@ -2197,10 +2196,12 @@ class GSEGeneratorGUI:
                             h5_tag = achieve_txt_div.find('h5')
                             if h3_tag:
                                 display_name = h3_tag.text.strip()
-                                achievement['displayName'] = display_name
+                                if display_name:
+                                    achievement['displayName'] = display_name
                             if h5_tag:
                                 description = h5_tag.text.strip()
-                                achievement['description'] = description
+                                if description:
+                                    achievement['description'] = description
                     else:
                         print(
                             f"No matching achievements found, SteamDB achievements Page icon: {page1_icon}")
